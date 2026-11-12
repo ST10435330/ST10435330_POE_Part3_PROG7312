@@ -56,7 +56,8 @@ public sealed partial class RealtimeEngine
         Guid id,
         DateTimeOffset? from,
         DateTimeOffset? to,
-        int take = 120)
+        int take = 120,
+        int skip = 0)
     {
         lock (sync)
         {
@@ -75,11 +76,18 @@ public sealed partial class RealtimeEngine
 
             timelines.TryGetValue(id, out var timeline);
 
-            StreamLog[] rows = timeline is null
+            IReadOnlyList<StreamLog> matches = timeline is null
                 ? Array.Empty<StreamLog>()
-                : timeline.Range(start, end)
-                    .TakeLast(Math.Clamp(take, 1, 500))
-                    .ToArray();
+                : timeline.Range(start, end);
+
+            int limit = Math.Clamp(take, 1, 500);
+            int offset = Math.Max(0, skip);
+            int endIndex = Math.Max(0, matches.Count - offset);
+            int startIndex = Math.Max(0, endIndex - limit);
+            StreamLog[] rows = matches
+                .Skip(startIndex)
+                .Take(endIndex - startIndex)
+                .ToArray();
 
             watch.Stop();
 
@@ -87,6 +95,11 @@ public sealed partial class RealtimeEngine
             {
                 records = rows,
                 stored = timeline?.Count ?? 0,
+                matched = matches.Count,
+                take = limit,
+                skip = offset,
+                hasOlder = startIndex > 0,
+                hasNewer = offset > 0 && matches.Count > 0,
                 algorithm =
                     "AVL timestamp index; insertion/removal O(log n), " +
                     "range search O(log n + k), where k is matching readings.",

@@ -70,7 +70,7 @@ app.MapPost("/api/stream/observations/search", (SearchObservation request, Realt
 app.MapPost("/api/stream/links", (PumpLinkRequest request, RealtimeEngine e) => e.LinkPump(request.SensorId, request.ActuatorId));
 app.MapGet("/api/stream/devices", (RealtimeEngine e, string? search, string? category, string? status, int skip = 0, int take = 30) => e.FindDevices(search, category, status, skip, take));
 app.MapGet("/api/stream/devices/{id:guid}", (Guid id, RealtimeEngine e) => e.Device(id));
-app.MapGet("/api/stream/history/{id:guid}", (Guid id, RealtimeEngine e, DateTimeOffset? from, DateTimeOffset? to, int take = 120) => e.History(id, from, to, take));
+app.MapGet("/api/stream/history/{id:guid}", (Guid id, RealtimeEngine e, DateTimeOffset? from, DateTimeOffset? to, int take = 120, int skip = 0) => e.History(id, from, to, take, skip));
 app.MapGet("/api/stream/recent", (RealtimeEngine e, long after = 0) => e.RecentProcessing(after));
 app.MapGet("/api/stream/alerts", (RealtimeEngine e) => e.AlertSnapshot());
 app.MapPost("/api/stream/commands", (CommandRequest request, RealtimeEngine e) => e.IssueCommand(request.SensorId, request.State));

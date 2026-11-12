@@ -56,6 +56,7 @@ try
     Check(h.Tail(2).Select(p=>p.Value).SequenceEqual(new[]{true,false}),"jagged batch order");
     for(var i=0;i<5000;i++)h.Append(new(sensor.Id,time.AddSeconds(i+2),true));
     Check(h.Count<=2048,"bounded retention");
+    HistoryPagingChecks.Run(g, Check, Reject);
     RealtimeChecks.Run(g, Check, Reject);
     var result=g.Load(100);Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
     var reloaded=new Gateway(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{{"DataDirectory",directory}}).Build());
