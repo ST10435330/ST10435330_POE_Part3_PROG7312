@@ -19,6 +19,21 @@ public static class RealtimeChecks
         check(e.RecentProcessing().Select(p => p.Timestamp).SequenceEqual(new[] { time.AddSeconds(2), time, time.AddSeconds(1) }), "normal lane preserves FIFO processing order");
         check(g.FloatHistory(sensor.Id, 3).Select(p => p.Timestamp).SequenceEqual(new[] { time, time.AddSeconds(1), time.AddSeconds(2) }), "priority reordering preserves chronological typed history");
         check(Json(e.History(sensor.Id, null, null)).GetProperty("records").GetArrayLength() == 3, "sorted timeline includes every processed packet");
+        var rangeRows = Json(
+        e.History(sensor.Id, time.AddSeconds(1), time.AddSeconds(2)))
+        .GetProperty("records");
+
+        check(
+    rangeRows.GetArrayLength() == 2 &&
+    rangeRows[0].GetProperty("timestamp").GetDateTimeOffset()
+        == time.AddSeconds(1) &&
+    rangeRows[1].GetProperty("timestamp").GetDateTimeOffset()
+        == time.AddSeconds(2),
+    "AVL history query returns only the requested inclusive range");
+
+        reject(
+    () => e.History(sensor.Id, time.AddSeconds(2), time),
+    "history rejects an inverted time range");
         e.SetProcessingPaused(true);
         var waiting = e.Enqueue(new FloatWork(new(sensor.Id, time.AddSeconds(3), 50)));
         var critical = e.Enqueue(new FloatWork(new(sensor.Id, time.AddSeconds(4), 4)));

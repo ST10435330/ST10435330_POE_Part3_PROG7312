@@ -6,9 +6,81 @@ namespace SmartX.DataStructures;
 public sealed class AvlTree<TKey, TValue>
     where TKey : IComparable<TKey>
 {
+    public bool ContainsKey(TKey key)
+{
+    Node? current = root;
+
+    while (current is not null)
+    {
+        int comparison = key.CompareTo(current.Key);
+
+        if (comparison == 0)
+        {
+            return true;
+        }
+
+        current = comparison < 0
+            ? current.Left
+            : current.Right;
+    }
+
+    return false;
+}
+
+public IEnumerable<TValue> Values => Enumerate(root);
+
+private static IEnumerable<TValue> Enumerate(Node? node)
+{
+    if (node is null)
+    {
+        yield break;
+    }
+
+    foreach (TValue value in Enumerate(node.Left))
+    {
+        yield return value;
+    }
+
+    yield return node.Value;
+
+    foreach (TValue value in Enumerate(node.Right))
+    {
+        yield return value;
+    }
+}
+    
     private Node? root;
 
     public int Count { get; private set; }
+
+    public int Height => GetHeight(root);
+
+public bool RemoveMinimum()
+{
+    if (root is null)
+    {
+        return false;
+    }
+
+    root = RemoveMinimumNode(root);
+    Count--;
+
+    return true;
+}
+
+private static Node? RemoveMinimumNode(Node node)
+{
+    if (node.Left is null)
+    {
+        return node.Right;
+    }
+
+    node.Left = RemoveMinimumNode(node.Left);
+
+    UpdateHeight(node);
+
+    return Rebalance(node);
+}
 
     private sealed class Node
     {

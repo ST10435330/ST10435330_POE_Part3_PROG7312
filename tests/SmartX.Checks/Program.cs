@@ -2,6 +2,33 @@ using SmartX;
 using Microsoft.Extensions.Configuration;
 static void Check(bool condition,string name){if(!condition)throw new Exception(name);Console.WriteLine("PASS "+name);}
 static void Reject(Action action,string name){try{action();}catch(GatewayException){Console.WriteLine("PASS "+name);return;}throw new Exception("Expected rejection: "+name);}
+var avl = new SmartX.DataStructures.AvlTree<int, int>();
+
+for (int i = 1; i <= 4096; i++)
+{
+    avl.Insert(i, i);
+}
+
+Check(
+    avl.Count == 4096 && avl.Height <= 18,
+    "AVL stays balanced after chronological insertion");
+
+Check(
+    avl.Range(100, 102).SequenceEqual(new[] { 100, 101, 102 }),
+    "AVL range includes both boundaries in order");
+for (int i = 0; i < 2048; i++)
+{
+    if (!avl.RemoveMinimum())
+    {
+        throw new Exception("Expected an oldest AVL entry to remove.");
+    }
+}
+Check(
+    avl.Count == 2048 &&
+    !avl.ContainsKey(2048) &&
+    avl.ContainsKey(2049) &&
+    avl.Height <= 18,
+    "AVL remains balanced after oldest-entry retention");
 var directory=Path.Combine(Path.GetTempPath(),"smartx-check-"+Guid.NewGuid());
 try
 {

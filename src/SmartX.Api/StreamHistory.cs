@@ -1,39 +1,108 @@
+using SmartX.DataStructures;
+
 namespace SmartX;
 
 public sealed partial class RealtimeEngine
 {
-    private readonly Dictionary<Guid, SortedDictionary<DateTimeOffset, StreamLog>> timelines = new();
+    private readonly Dictionary<
+        Guid,
+        AvlTree<DateTimeOffset, StreamLog>> timelines = new();
+
     private readonly Queue<StreamLog> processingOrder = new();
+
     private long logSequence;
+
     private void RecordProcessed(QueuedWork item)
     {
         var work = item.Work;
-        var row = new StreamLog(++logSequence, work.SensorId, devices[work.SensorId].Sensor.Identifier,
-            work.Timestamp, work.ValueText, work.Critical, work.Critical ? "Priority" : "FIFO", DateTimeOffset.UtcNow,
-            work is FloatWork f ? f.Packet.Value : work is PowerWork p ? p.Packet.Value : null);
-        if (!timelines.TryGetValue(work.SensorId, out var timeline)) timelines[work.SensorId] = timeline = new();
-        timeline.Add(work.Timestamp, row);
-        while (timeline.Count > 2048) timeline.Remove(timeline.First().Key);
+
+        var row = new StreamLog(
+            ++logSequence,
+            work.SensorId,
+            devices[work.SensorId].Sensor.Identifier,
+            work.Timestamp,
+            work.ValueText,
+            work.Critical,
+            work.Critical ? "Priority" : "FIFO",
+            DateTimeOffset.UtcNow,
+            work is FloatWork f
+                ? f.Packet.Value
+                : work is PowerWork p
+                    ? p.Packet.Value
+                    : null);
+
+        if (!timelines.TryGetValue(work.SensorId, out var timeline))
+        {
+            timeline = new AvlTree<DateTimeOffset, StreamLog>();
+            timelines[work.SensorId] = timeline;
+        }
+
+        timeline.Insert(work.Timestamp, row);
+
+        while (timeline.Count > 2048)
+        {
+            timeline.RemoveMinimum();
+        }
+
         processingOrder.Enqueue(row);
-        while (processingOrder.Count > 300) processingOrder.Dequeue();
+
+        while (processingOrder.Count > 300)
+        {
+            processingOrder.Dequeue();
+        }
     }
-    public object History(Guid id, DateTimeOffset? from, DateTimeOffset? to, int take = 120)
+
+    public object History(
+        Guid id,
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        int take = 120)
     {
         lock (sync)
         {
             gateway.Get(id);
-            if (from > to) throw new GatewayException("Start time must be before end time.");
+
+            DateTimeOffset start = from ?? DateTimeOffset.MinValue;
+            DateTimeOffset end = to ?? DateTimeOffset.MaxValue;
+
+            if (start > end)
+            {
+                throw new GatewayException(
+                    "Start time must be before end time.");
+            }
+
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            var rows = timelines.TryGetValue(id, out var timeline)
-                ? timeline.Where(p => (!from.HasValue || p.Key >= from) && (!to.HasValue || p.Key <= to))
-                    .TakeLast(Math.Clamp(take, 1, 500)).Select(p => p.Value).ToArray() : [];
-            return new { records = rows, stored = timeline?.Count ?? 0,
-                algorithm = "SortedDictionary timestamp order; insertion O(log n), range enumeration O(n).",
-                searchMilliseconds = watch.Elapsed.TotalMilliseconds };
+
+            timelines.TryGetValue(id, out var timeline);
+
+            StreamLog[] rows = timeline is null
+                ? Array.Empty<StreamLog>()
+                : timeline.Range(start, end)
+                    .TakeLast(Math.Clamp(take, 1, 500))
+                    .ToArray();
+
+            watch.Stop();
+
+            return new
+            {
+                records = rows,
+                stored = timeline?.Count ?? 0,
+                algorithm =
+                    "AVL timestamp index; insertion/removal O(log n), " +
+                    "range search O(log n + k), where k is matching readings.",
+                searchMilliseconds = watch.Elapsed.TotalMilliseconds
+            };
         }
     }
+
     public StreamLog[] RecentProcessing(long after = 0)
     {
-        lock (sync) return processingOrder.Where(row => row.Sequence > after).TakeLast(100).ToArray();
+        lock (sync)
+        {
+            return processingOrder
+                .Where(row => row.Sequence > after)
+                .TakeLast(100)
+                .ToArray();
+        }
     }
 }
