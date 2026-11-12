@@ -1,4 +1,5 @@
 import {request, byId as $, element} from './stream-api.js';
+import {setHistorySensor} from './topology-history.js';
 
 let mesh = null, route = null, page = 0;
 let selected = sessionStorage.getItem('smartx-mesh-selected') || '';
@@ -113,6 +114,7 @@ function renderRegistry() {
 
 function renderSelection() {
     const node = selectedNode();
+    setHistorySensor(node);
     $('meshSelectedTitle').textContent = node?.identifier || 'Select a sensor';
     $('meshSelectedStatus').textContent = node ?
         `${node.category} · Mesh: ${node.status} · Telemetry: ${node.telemetryStatus} · ${node.reachable ? 'Gateway reachable' : 'Gateway unreachable'}` : '';

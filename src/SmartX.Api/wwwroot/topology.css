@@ -18,5 +18,12 @@
 #meshPaths p { overflow-wrap: anywhere; }
 .mesh-cost { font-size: 11px; fill: #333; stroke: #fff; stroke-width: 3px; paint-order: stroke; }
 #meshGraphScope, #meshUpdated, #meshMatchCount { font-size: 12px; color: #555; }
+.mesh-history-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 120px; gap: 12px; }
+.mesh-history-fields > label { min-width: 0; }
+#meshHistoryMessage { min-height: 24px; }
+#meshHistoryTimezone, #meshHistoryInfo, #meshHistoryPage { font-size: 12px; }
+#meshHistoryViewport caption { text-align: left; padding: 8px 0; color: #555; }
+#meshHistoryAlgorithm { overflow-wrap: anywhere; }
 @media (max-width: 900px) { #topology .mesh-grid { grid-template-columns: 1fr; } #meshDevices { max-height: 220px; } }
 @media (max-width: 550px) { #meshMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 650px) { .mesh-history-fields { grid-template-columns: 1fr; gap: 0; } }

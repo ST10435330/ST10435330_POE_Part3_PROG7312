@@ -64,6 +64,30 @@
         <p>BFS finds the fewest-hop route. Prim minimises the total cost of the gateway's reachable tree; each sensor's individual tree route may have a higher cost.</p>
         <p>Clearing a failure restores mesh eligibility. Paused sensors and sensors without recent telemetry remain offline.</p>
       </section>
+      <section class="panel" aria-labelledby="meshHistoryTitle">
+        <h2 id="meshHistoryTitle">Telemetry history</h2>
+        <p id="meshHistorySensor">Select a sensor to inspect its history.</p>
+        <p>This log contains telemetry processed through the API since the server started. Startup seed samples remain available in Sensor ingestion.</p>
+        <form id="meshHistoryFilter">
+          <div class="mesh-history-fields">
+            <label>From<input id="meshHistoryFrom" type="datetime-local" step="1"></label>
+            <label>To<input id="meshHistoryTo" type="datetime-local" step="1"></label>
+            <label>Rows per page<select id="meshHistoryLimit"><option>25</option><option selected>50</option><option>100</option><option>500</option></select></label>
+          </div>
+          <div class="mesh-toolbar"><button id="meshHistoryApply" type="submit" disabled>Search history</button><button id="meshHistoryClear" type="button">Clear range</button><button id="meshHistoryRefresh" type="button" disabled>Refresh history</button><button id="meshHistorySample" type="button" disabled>Send normal via HTTP</button></div>
+        </form>
+        <p id="meshHistoryTimezone"></p>
+        <p id="meshHistoryMessage" role="status" aria-live="polite">Select a sensor to inspect its history.</p>
+        <p id="meshHistoryInfo"></p>
+        <div class="table-scroll" id="meshHistoryViewport"><table>
+          <caption>Selected sensor readings, newest first on each page</caption>
+          <thead><tr><th scope="col">Sensor timestamp</th><th scope="col">Reading</th><th scope="col">Lane</th><th scope="col">Processed at</th><th scope="col">Processing #</th></tr></thead>
+          <tbody id="meshHistoryRows"></tbody>
+        </table></div>
+        <p id="meshHistoryPage" role="status"></p>
+        <div class="mesh-toolbar"><button id="meshHistoryNewer" type="button" disabled>Newer readings</button><button id="meshHistoryOlder" type="button" disabled>Older readings</button><button id="meshHistoryLatest" type="button" disabled>Latest page</button></div>
+        <details><summary>History query details</summary><p id="meshHistoryAlgorithm"></p></details>
+      </section>
     </div>
   </div>
 </section>
