@@ -29,6 +29,9 @@ Check(
     avl.ContainsKey(2049) &&
     avl.Height <= 18,
     "AVL remains balanced after oldest-entry retention");
+
+    MeshGraphChecks.Run(Check, Reject);
+    
 var directory=Path.Combine(Path.GetTempPath(),"smartx-check-"+Guid.NewGuid());
 try
 {
