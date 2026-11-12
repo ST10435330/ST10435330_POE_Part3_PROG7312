@@ -20,4 +20,6 @@ jobs:
       - run: node --check src/SmartX.Api/wwwroot/navigation.js
       - run: node --check src/SmartX.Api/wwwroot/stream.js
       - run: node --check src/SmartX.Api/wwwroot/stream-api.js
+      - run: node --check src/SmartX.Api/wwwroot/topology.js
+      - run: node --check src/SmartX.Api/wwwroot/topology-history.js
       - run: python scripts/http_checks.py
