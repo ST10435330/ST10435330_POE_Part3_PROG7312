@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.Features;
 var builder=WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<Gateway>();
 builder.Services.AddSingleton<RealtimeEngine>();
+builder.Services.AddSingleton<NetworkTopology>();
 builder.Services.AddHostedService<TelemetryWorker>();
 builder.Services.AddHttpClient("device-simulator");
 builder.Services.AddSingleton<DeviceSimulator>();
@@ -20,6 +21,19 @@ app.Use(async(context,next)=>
 app.MapGet("/", (IWebHostEnvironment environment) => Results.File(Path.Combine(environment.WebRootPath, "index.html"), "text/html"));
 app.UseStaticFiles();
 app.MapGet("/api/health",()=>new {status="ok"});
+app.MapGet(
+    "/api/topology",
+    (NetworkTopology topology) => topology.Snapshot());
+
+app.MapGet(
+    "/api/topology/route",
+    (string identifier, NetworkTopology topology) =>
+        topology.Route(identifier));
+
+app.MapPost(
+    "/api/topology/failure",
+    (TopologyFailureRequest request, NetworkTopology topology) =>
+        topology.SetFailure(request));
 app.MapGet("/api/deployment",(Gateway g)=>g.Tree);
 app.MapPost("/api/deployment/validate",(string[] path,Gateway g)=> { var error=DeploymentValidator.Validate(g.Tree,path); return error is null ? Results.Ok(new {valid=true}) : Results.BadRequest(new {error}); });
 app.MapGet("/api/summary",(Gateway g)=>g.Summary());
