@@ -1,8 +1,9 @@
-"""Part 1 + Part 2 HTTP checks. Build Release first; Python 3 uses only its standard library."""
+"""Parts 1-3 HTTP checks. Build Release first; Python 3 uses only its standard library."""
 import json, os, shutil, subprocess, tempfile, time
 import urllib.request, urllib.error
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
+from topology_http_checks import run as run_topology_checks
 root = Path(__file__).resolve().parents[1]
 dotnet = os.environ.get('SMARTX_DOTNET', 'dotnet')
 base = 'http://127.0.0.1:5089'
@@ -117,7 +118,8 @@ try:
     check(load['packets']==6 and 'HTTP' in load['scope'],'load exercise also uses HTTP')
     with urllib.request.urlopen(base+'/api/stream/events',timeout=5) as response:
         check(response.readline().strip()==b'event: refresh' and b'normalPending' in response.readline(),'server-sent events publish live queue state')
-    print(f'PASS: {checks} HTTP checks.')
+    run_topology_checks(request, check, register, send, wait_receipt, packet)
+    print(f'PASS: {checks} HTTP checks across Parts 1-3.')
 except Exception:
     log.flush()
     print(Path(log.name).read_text()[-5000:])
