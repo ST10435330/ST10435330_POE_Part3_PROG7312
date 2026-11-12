@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smart-X | Sensor gateway</title><link rel="stylesheet" href="styles.css"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Smart-X | Sensor gateway</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="topology.css"></head>
 <body><header><a href="#" id="home">SMART-X</a><span>IoT monitoring</span><span id="connection" role="status">Connecting…</span></header>
-<nav id="moduleNav" aria-label="Main modules"><button data-view="landing">Main menu</button><button data-view="dashboard">Sensor ingestion</button><button data-view="stream">Command stream</button><button disabled>Network topology (final POE)</button></nav><main><section id="landing"><p class="eyebrow">PROG7312 Part 2</p><h1>Smart-X Sensor Dashboard</h1><p>Monitor hydroponic moisture, utility power and irrigation valve states from one typed telemetry gateway.</p><div class="pillars"><button id="enter"><small>01 / AVAILABLE</small><h2>Sensor Data Ingestion<br>and Telemetry →</h2><p>Register devices. Inspect trends. Investigate anomalies.</p></button><button id="enterStream"><small>02 / AVAILABLE</small><h2>Real-Time Command<br>Stream and History</h2><p>Live queues, overrides, undo and suggested actions.</p></button><button disabled><small>03 / FINAL POE</small><h2>Network Topology<br>and Mesh Routing</h2><p>Coming in the final POE</p></button></div></section>
+<nav id="moduleNav" aria-label="Main modules"><button data-view="landing">Main menu</button><button data-view="dashboard">Sensor ingestion</button><button data-view="stream">Command stream</button><button data-view="topology">Network topology</button></nav><main><section id="landing"><p class="eyebrow">PROG7312 Part 3</p><h1>Smart-X Sensor Dashboard</h1><p>Monitor hydroponic moisture, utility power and irrigation valve states from one typed telemetry gateway.</p><div class="pillars"><button id="enter"><small>01 / AVAILABLE</small><h2>Sensor Data Ingestion<br>and Telemetry →</h2><p>Register devices. Inspect trends. Investigate anomalies.</p></button><button id="enterStream"><small>02 / AVAILABLE</small><h2>Real-Time Command<br>Stream and History</h2><p>Live queues, overrides, undo and suggested actions.</p></button><button data-view="topology" id="enterTopology"><small>03 / AVAILABLE</small><h2>Network Topology<br>and Mesh Routing →</h2><p>Inspect connections, trace routes and simulate node failures.</p></button></div></section>
 <section id="dashboard" hidden><div class="titlebar"><div><p class="eyebrow">01 / SENSOR DATA INGESTION</p><h1>Sensor dashboard</h1></div><button id="running">Start live simulator</button></div>
 <div class="metrics" id="metrics"></div><p id="message" role="status" aria-live="polite"></p>
 <div class="grid"><aside class="panel"><h2>Sensor registry</h2><label>Find identifier<input id="search" placeholder="ESP32-0001"></label><label>Category<select id="filter"><option value="">All categories</option><option>Environmental</option><option>Power Consumption</option><option>Actuator</option></select></label><div id="sensors" class="sensor-list"></div><div class="row"><button id="previous">Previous</button><span id="page"></span><button id="next">Next</button></div><details><summary>Register a sensor</summary><form id="register"><label>MAC address or unique identifier<input name="identifier" required maxlength="64" placeholder="ESP32-FARM-01"></label><label>Sensor category<select name="category"><option>Environmental</option><option>Power Consumption</option><option>Actuator</option></select></label><label>Deployment location<select name="path"><option>Facility A / Zone 1 / Sub-Zone B</option><option>Facility A / Utility Room</option><option>Facility A / Maintenance</option></select></label><label>Expected interval in seconds<input name="interval" type="number" min="1" max="3600" value="5" required></label><button>Validate and register</button></form></details></aside>
@@ -30,4 +30,41 @@
 <aside><section class="panel"><h2>Queue processing</h2><button id="toggleProcessing">Pause normal processing</button><p>Critical readings still process while the normal FIFO queue is paused. Work already being processed finishes first.</p><h3>Processing order</h3><div id="processingLog"></div></section>
 <section class="panel"><h2>Suggested actions</h2><p>Suggestions use configured links, search/command history and falling moisture trends. You choose whether to act.</p><div id="streamInsights"></div>
 <details><summary>Link selected moisture sensor to a pump</summary><form id="linkPump"><label>Actuator<select id="linkedPump"></select></label><button>Save relationship</button></form><p>A linked pump must be an Actuator; the selected source must be Environmental.</p></details></section>
-<section class="panel"><h2>Unique error states</h2><p id="activeAlertInfo"></p><div id="activeAlertEvents"></div></section></aside></div></section></main><footer>Smart-X • PROG7312 Part 2 • Simulated telemetry • Live command stream</footer><script src="navigation.js" defer></script><script src="app.js" defer></script><script src="stream.js" type="module"></script></body></html>
+<section class="panel"><h2>Unique error states</h2><p id="activeAlertInfo"></p><div id="activeAlertEvents"></div></section></aside></div></section>
+<section id="topology" hidden>
+  <div class="titlebar">
+    <div><p class="eyebrow">03 / NETWORK TOPOLOGY AND MESH ROUTING</p><h1>Network topology</h1></div>
+    <div class="mesh-toolbar"><button id="meshRefresh" type="button">Refresh network</button><button id="meshStart" type="button">Start 20 sensor demo</button><button id="meshStop" type="button">Stop simulator</button></div>
+  </div>
+  <p>Explore simulated mesh connections between registered sensors. Link costs are generated for the simulation. Grey dashed links belong to offline nodes.</p>
+  <p id="meshMessage" role="status" aria-live="polite">Select a sensor to trace its route to the central gateway.</p>
+  <p id="meshUpdated"></p>
+  <div class="metrics" id="meshMetrics"></div>
+  <div class="mesh-grid">
+    <aside class="panel">
+      <h2>Find a sensor</h2>
+      <form id="meshFind"><label for="meshSearch">Identifier or MAC address</label><input id="meshSearch" placeholder="ESP32-0004" autocomplete="off"><button type="submit">Find exact identifier</button></form>
+      <label class="mesh-filter"><input id="meshOnlyOnline" type="checkbox">Only online sensors</label>
+      <p id="meshMatchCount"></p>
+      <div id="meshDevices" class="sensor-list"></div>
+      <div class="row"><button id="meshPrevious" type="button">Previous</button><button id="meshNext" type="button">Next</button></div>
+    </aside>
+    <div>
+      <section class="panel">
+        <div class="titlebar"><h2>Mesh connections</h2><label>Highlighted route<select id="meshRouteMode"><option value="bfs">BFS — fewest hops</option><option value="mst">MST — tree route</option></select></label></div>
+        <div class="mesh-legend" aria-label="Graph legend"><span style="--swatch:#386c9d">Gateway</span><span style="--swatch:#26786b">Reachable node / MST link</span><span style="--swatch:#ae7a00">Online, unreachable</span><span style="--swatch:#b64034">Offline</span><span style="--swatch:#c45e00">Selected route</span></div>
+        <div class="mesh-graph-scroll"><svg id="meshGraph" viewBox="0 0 1000 600" role="group" aria-label="Interactive mesh network. Select a sensor node to trace its route."></svg></div>
+        <p id="meshGraphScope"></p>
+      </section>
+      <section class="panel">
+        <h2 id="meshSelectedTitle">Select a sensor</h2>
+        <p id="meshSelectedStatus"></p><p id="meshLastReceived"></p>
+        <div id="meshPaths"></div>
+        <div class="mesh-toolbar"><button id="meshFail" type="button" disabled>Fail selected sensor</button><button id="meshRestore" type="button" disabled>Clear selected failure</button><button id="meshFailRelay" type="button" disabled>Fail next relay</button></div>
+        <p>BFS finds the fewest-hop route. Prim minimises the total cost of the gateway's reachable tree; each sensor's individual tree route may have a higher cost.</p>
+        <p>Clearing a failure restores mesh eligibility. Paused sensors and sensors without recent telemetry remain offline.</p>
+      </section>
+    </div>
+  </div>
+</section>
+</main><footer>Smart-X • PROG7312 Part 3 • Simulated telemetry • Mesh routing</footer><script src="navigation.js" defer></script><script src="app.js" defer></script><script src="stream.js" type="module"></script><script src="topology.js" type="module"></script></body></html>

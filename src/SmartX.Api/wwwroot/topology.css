@@ -1,0 +1,22 @@
+#topology .mesh-grid { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
+#topology .mesh-grid > * { min-width: 0; }
+#meshMetrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mesh-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mesh-filter input[type="checkbox"] { display: inline-block; width: auto; margin: 0 6px 0 0; }
+#meshMessage { min-height: 24px; }
+#meshDevices button.selected { background: #d9e8f5; border-color: #244c74; }
+#meshDevices small { display: block; }
+#topology h2, #meshDevices button { overflow-wrap: anywhere; }
+.mesh-graph-scroll { overflow: auto; max-height: 650px; border: 1px solid #ccd4dc; background: #f8fafc; }
+#meshGraph { display: block; width: 100%; min-width: 760px; }
+#meshGraph text { font-family: Arial, sans-serif; }
+.mesh-node { cursor: pointer; }
+.mesh-node:focus { outline: none; }
+.mesh-node:focus circle, .mesh-node:hover circle { stroke: #111; stroke-width: 4; }
+.mesh-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0; font-size: 12px; }
+.mesh-legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 50%; background: var(--swatch); }
+#meshPaths p { overflow-wrap: anywhere; }
+.mesh-cost { font-size: 11px; fill: #333; stroke: #fff; stroke-width: 3px; paint-order: stroke; }
+#meshGraphScope, #meshUpdated, #meshMatchCount { font-size: 12px; color: #555; }
+@media (max-width: 900px) { #topology .mesh-grid { grid-template-columns: 1fr; } #meshDevices { max-height: 220px; } }
+@media (max-width: 550px) { #meshMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
