@@ -1,12 +1,6 @@
 using System.Text.Json.Serialization;
 using SmartX.DataStructures;
 
-//Adds:
-//A snapshot of sensors, links, health, BFS traversal and the MST.
-//Route lookup by the sensor’s registered identifier or MAC address.
-//Failure simulation that immediately excludes a node from routing.
-//Recalculation using current sensor health on each request.
-
 namespace SmartX;
 
 public sealed record MeshDeviceHealth(
@@ -63,6 +57,7 @@ public sealed partial class Gateway
     }
 }
 
+// Builds current mesh snapshots and routes from registered sensors and their health.
 public sealed class NetworkTopology(Gateway gateway)
 {
     public const string GatewayIdentifier = "CENTRAL GATEWAY";

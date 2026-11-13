@@ -105,7 +105,7 @@ footer { text-align: center; color: #555; padding: 20px; font-size: 12px; }
     .sensor-list { max-height: 180px; }
 }
 
-/* Part 2 keeps the same simple forms and panels as Part 1. */
+/* Navigation and command stream panels */
 #moduleNav { padding: 10px 24px; background: #ddd; display: flex; flex-wrap: wrap; gap: 8px; }
 #moduleNav [aria-current="page"] { background: #1e3d5e; }
 .stream-grid { display: grid; grid-template-columns: 230px minmax(360px, 1fr) 300px; gap: 16px; align-items: start; }

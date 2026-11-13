@@ -33,7 +33,7 @@ public sealed partial class Gateway
                 AddSensor(new(Guid.NewGuid(), $"ESP32-{i:D4}", Categories[i % 3], ["Facility A", "Zone 1", "Sub-Zone B"], 5, DateTimeOffset.UtcNow));
             SaveProfiles();
         }
-        // Typed, seeded historical batches prove all three storage paths are exercised.
+        // Seed historical readings for each registered sensor category.
         foreach (var sensor in sensors.Values) SeedHistory(sensor, 120);
     }
     public static readonly string[] Categories = ["Environmental", "Power Consumption", "Actuator"];
@@ -187,7 +187,7 @@ public sealed partial class Gateway
         {
             if(rounds is <1 or >100) throw new GatewayException("Rounds must be 1–100.");
             var watch=Stopwatch.StartNew(); var before=accepted;
-            // Actual validated ingestion path, not a loop that merely increments a counter.
+            // Run generated readings through the typed ingestion methods.
             for(var i=0;i<rounds;i++) foreach(var s in sensors.Values)
             {
                 var previous=s.Category==Categories[0]? environmental[s.Id].Latest?.Timestamp : s.Category==Categories[1]?power[s.Id].Latest?.Timestamp:actuators[s.Id].Latest?.Timestamp;
