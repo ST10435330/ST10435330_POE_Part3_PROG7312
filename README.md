@@ -1,12 +1,21 @@
-# Smart-X — PROG7312 POE Part 2
+# Smart-X — PROG7312 POE Part 3
 
-Smart-X simulates an IoT gateway for hydroponic moisture sensors, utility meters and irrigation actuators. Part 1 registration, typed readings, attachments, charts, recursive deployment validation and meter aggregation remain available. Part 2 adds HTTP device simulation, asynchronous ingestion queues, live command history, undo and suggested actions.
+Smart-X is a simulated IoT gateway for hydroponic moisture sensors, utility meters and irrigation actuators. The completed application combines typed telemetry ingestion, a real-time command stream and a network topology dashboard. It uses C#/.NET 10, an ASP.NET Core Minimal API and an HTML/CSS/JavaScript client served by the same application.
 
-## Run it on Windows
+Part 3 adds an AVL timestamp index, a weighted mesh graph, BFS traversal, Prim's Minimum Spanning Tree (MST), route highlighting, failure simulation and filtered telemetry history.
 
-Install the **.NET 10 SDK** and Git. Check `dotnet --version` starts with `10.`. The assignment specifies .NET 10; an older Visual Studio may reject this target even when the SDK works. Use PowerShell to run it, or an IDE that supports .NET 10.
+## Requirements
 
-Open PowerShell inside the folder containing this README and `src`:
+- .NET **10 SDK**. The projects target `net10.0`; check with `dotnet --version`.
+- A browser and Git.
+- Python 3 for the HTTP checks; they use the standard library.
+- Docker with Compose for the optional container run.
+
+The application does not require npm packages, a separate frontend server, an external database account, API keys or physical ESP32 hardware.
+
+## Restore, compile and run
+
+Open PowerShell in the repository directory containing `SmartX.sln`:
 
 ```powershell
 dotnet restore SmartX.sln -m:1
@@ -14,107 +23,108 @@ dotnet build SmartX.sln -c Release -m:1
 dotnet run --project src/SmartX.Api -c Release --no-build --urls http://localhost:5080
 ```
 
-Keep that terminal open. Open **http://localhost:5080**. The running message means the server is ready; open the browser yourself. Ctrl+C stops it. If the port is occupied, use `http://localhost:5081` in both the command and browser.
+Keep the terminal running and open [http://localhost:5080](http://localhost:5080). Ctrl+C stops the application. If port 5080 is occupied, use `--urls http://localhost:5081` and open that address instead. Relative client API URLs continue working.
 
-No npm install, separate frontend server, database account, physical ESP32 or API key is needed. The API serves the HTML/CSS/JavaScript client from `wwwroot`. Browser modules are loaded directly; JavaScript syntax and browser operation are checked instead of a frontend transpilation build.
+Use the hosted page rather than opening `index.html` directly. JavaScript modules are served from `src/SmartX.Api/wwwroot`; there is no frontend transpilation step. Stop a running application before rebuilding it if Windows reports a locked output file.
 
-## Navigation
+## Application views
 
-The main menu and navigation bar open:
+| View | Main functions |
+|---|---|
+| Sensor Data Ingestion and Telemetry | Sensor registration, typed readings, freshness/threshold checks, raw history, attachments, load exercise and meter aggregation |
+| Real-Time Command Stream and History | FIFO/critical queues, receipts, live events, device filtering, manual overrides, stack undo and suggested actions |
+| Network Topology and Mesh Routing | Weighted mesh diagram, sensor/MAC search, BFS and MST routes, device health, simulated failures and paged telemetry history |
 
-1. **Sensor Data Ingestion and Telemetry** — register sensors, select categories and locations, attach logs/photos, view readings and aggregate meters.
-2. **Real-Time Command Stream and History** — view live devices, queues, history, manual overrides and insights.
-3. **Network Topology and Mesh Routing** — visible but disabled until the final POE.
+All three views are active. Navigation changes the visible section without reloading the document, so inputs and selections remain available while moving between views. The command stream also saves its selected device and filters in session storage. Topology saves its selected identifier and applied history dates/page size. The topology history returns to its newest page after selecting a different sensor or reloading the page.
 
-Navigation changes the visible view without reloading the document. Filters, selection, inputs and pending server work survive view changes. Selected stream device, filters and history range also use session storage for a same-tab refresh. Queues and simulation run on the server independently of which page is visible.
+## Start a mesh demonstration
 
-## How telemetry travels
+1. Open **Network topology** and click **Start 20 sensor demo**. This configures HTTP telemetry for up to the first 20 registered sensors.
+2. Enter `ESP32-0004` and click **Find exact identifier**. These example identifiers are created by a fresh installation.
+3. Inspect the selected device's mesh status, telemetry status, last reception time and route to `CENTRAL GATEWAY`.
+4. Switch **Highlighted route** between **BFS — fewest hops** and **MST — tree route**.
+5. Click **Fail next relay** to remove the next intermediate node on the highlighted route. Where an alternative exists, subsequent route calculations use it. A direct gateway route has no intermediate relay, so this button is disabled.
+6. Select the failed sensor and click **Clear selected failure** to remove the simulated fault.
+7. Use **Fail selected sensor** to demonstrate an unavailable source: both route arrays become empty while its stored history remains readable.
 
-`Simulated device / browser -> typed HTTP POST -> validation -> FIFO or priority queue -> hosted worker -> typed history + timestamp-sorted timeline -> live dashboard`
+The diagram normally displays up to 40 nodes, including the selected route and nearby nodes. The full selected route is retained if it needs more space. Registry search, metrics, BFS and MST calculations use the complete network. Search is paged; a sensor outside the diagram window can still be selected.
 
-1. The device simulator uses `HttpClient.PostAsJsonAsync` against the application's actual listening HTTP address. It does not call `Ingest` to bypass the API.
-2. Browser custom readings and jagged batches also POST to the same receiver endpoints.
-3. Environmental values stay `float`, wattage stays `int`, and actuator states stay `bool` in `TelemetryPacket<T>` and typed history. Queue work objects keep those typed packets; only presentation values are formatted for the UI.
-4. Normal readings enter `Queue<QueuedWork>` in arrival order. Moisture below 10% or above 90%, and power at least 7,500 W, enter `PriorityQueue<QueuedWork, (int, long)>`.
-5. The worker checks the priority queue first every 100 ms, then handles normal work, up to 100 packets per tick. A critical item bypasses waiting normal items. It does not interrupt an item already being stored.
-6. A `202` response means **queued**, not stored. Follow the returned receipt URL for `Queued`, `Processed` or `Rejected`.
-7. The dashboard receives server-sent events every second and asynchronously refreshes its data. A three-second polling fallback also runs while the stream view is open. The Part 1 view still refreshes every two seconds.
+Colours distinguish the gateway, reachable nodes, online-but-unreachable nodes and offline nodes. Green links belong to the current MST; orange links show the selected route. Dashed links touch an offline node. Costs printed on the selected path are generated simulation weights.
 
-Startup creates 1,000 profiles with 120 historical samples each (120,000 records). These are explicitly preloaded historical seeds, not live HTTP traffic. Part 2 timeline/queue counters begin empty and count new API-admitted telemetry only. To see live graphs, send samples or start the HTTP simulator.
+The mesh uses actual registered sensor identities, but its connections and costs are generated demonstration data. It is a routing model: HTTP ingestion remains the telemetry transport, and these algorithms do not reconfigure real radios or forward real packets through neighbouring ESP32 devices.
 
-## Demonstrate FIFO and critical priority
+## Mesh availability and health
 
-1. Open **Command stream**. Keep the HTTP simulator stopped.
-2. Search for `ESP32-0000` and select it. It is Environmental.
-3. Click **Pause normal processing**.
-4. Expand **Custom reading and batch**, set batch size to **100**, and click **Generate and transmit batch**. The browser builds nested arrays of **64 and 36** packets and POSTs them to the batch API.
-5. `Normal queued` increases by 100. The returned result shows admission receipts. It is deliberately not yet stored.
-6. Click **Send critical via HTTP**. Moisture of **5%** enters the priority queue and processes even though normal processing is paused.
-7. Inspect **Processing order**: the priority item appears first. `Normal queued` remains 100.
-8. Click **Resume normal processing**. The normal queue drains in FIFO order. History sorts by sensor timestamp, not processing order, so a critical item cannot make older valid queued readings disappear.
-9. In browser Developer Tools > Network, filter `telemetry` to inspect the actual single/batch requests. The server device simulator's own requests are visible in API counters/server HTTP logging, not the browser Network panel.
+A sensor is excluded from mesh calculations when it has a simulated failure, is paused, or its telemetry status becomes `Disconnected`. The existing freshness threshold is three times its expected reporting interval. A default five-second sensor becomes disconnected after more than 15 seconds without a reception. Newly registered sensors have an initial reporting grace period; startup seed samples also establish an initial reception time.
 
-Power test: select a Power Consumption device such as `ESP32-0001`, then click **Send critical via HTTP** for **8,000 W**. Normal environmental operating warnings start below 20% or above 80%; these are different from critical scheduling thresholds.
+Mesh status and telemetry status are shown separately. A simulated mesh failure can coexist with a recent, healthy reading. Clearing the failure restores eligibility, but a paused or stale sensor remains unavailable until its underlying condition is resolved.
 
-## Demonstrate the dictionary, filters and unique errors
+The 20-sensor demo does not continuously update all 1,000 initial profiles. Other sensors expire unless they transmit. **Send normal via HTTP** can generate a reading for the selected sensor. Normal processing must be running for a normal queued reading to reach history; critical readings can bypass a paused normal queue.
 
-- Search by identifier, exact node GUID, category, or operational state. `Alert` includes warning, critical and disconnected devices. The displayed search time is server filtering time, excluding HTTP.
-- `LiveRegistry.cs` uses a `Dictionary<Guid, DeviceReading>` for expected O(1) node lookups. Text/category/status filtering scans the registry: O(n), plus ordering the results.
-- The HTTP simulator defaults to the **first 20 registered devices**, not all 1,000. Change the count to 1–1,000 before starting it. It respects each selected device's reporting interval.
-- Pause `ESP32-0000` while the simulator runs. With its default five-second interval it disconnects after more than 15 seconds, plus the one-second health refresh. Unselected seed devices also become disconnected if no new packet arrives.
-- `HashSet<AlertKey>` stores unique `(sensor, error code)` pairs; `HashSet<Guid>` stores disconnected node IDs. Repeated checks do not create another alert transition. Resume the device or send a fresh normal packet to clear its disconnect.
+## Historical telemetry and date-range search
 
-## Manual overrides and Stack undo
+The topology history panel follows the selected sensor. It queries a separate AVL tree for each sensor, using timestamps as keys.
 
-1. Filter category to **Actuator** and select `ESP32-0002` or register your own pump on the Part 1 page.
-2. Click **Turn selected ON**, then **Turn selected OFF**.
-3. Click **Undo last command**: it restores ON. Click again: it restores the original state.
-4. **Shut down all actuators** affects every registered Actuator. Confirm the action. One undo restores each device's previous state as one grouped command.
+1. Start the demo or click **Send normal via HTTP**.
+2. Choose **From**, **To** and a page size, then click **Search history**. Either date can be omitted. Times are entered in the browser's local timezone and converted to ISO timestamps for the API; both boundaries are inclusive.
+3. Read the retained count, matching count and displayed row count. The table shows newest readings first on each page.
+4. Use **Older readings**, **Newer readings** or **Latest page** to navigate through the retained matches.
+5. **Clear range** removes the applied date limits. The newest page refreshes every three seconds while the topology view is visible; older pages remain still until explicitly refreshed or changed.
 
-`CommandHistory.cs` stores commands in `Stack<CommandEntry>`. `Push` records a successful command, `TryPeek` reads the last one, and `Pop` removes it only after restoration succeeds. Each command saves previous/current boolean states. The simulated state is changed, not just a history label. The simulator respects the manual override state. Undo is global to this local gateway, not a per-tab stack.
+For a quick paging demonstration, stop the simulator, send a 60-reading batch for the same sensor from **Command stream**, then return to topology and apply a 25-row page size. Batch admission is asynchronous; wait for processing before checking the log.
 
-## Suggested actions and predictive behaviour
+The AVL timeline contains telemetry successfully processed from the ingestion queues since the server started. Startup preload samples and direct manual actuator-state changes remain in the original typed raw histories rather than this timeline. The UI labels this scope. Empty history means no processed records exist yet, or the date range excludes them.
 
-Suggestions never execute automatically. Review the device and issue a manual command yourself.
+## Telemetry, queues and commands
 
-**Configured relationship:** register or choose a moisture sensor and an Actuator representing its pump. On the stream page select the moisture sensor, open **Link selected moisture sensor to a pump**, choose its pump and save. Send critical moisture (5%). If the pump is available and OFF, a suggested action proposes inspecting/switching that specific pump ON. Unlinked moisture sensors receive inspection guidance; the app does not guess which physical pump controls them.
+```mermaid
+flowchart TD
+    D["HTTP simulator or browser"] --> A["Typed telemetry API"]
+    A --> P["Critical priority queue"]
+    A --> Q["Normal FIFO queue"]
+    P --> W["Telemetry worker"]
+    Q --> W
+    W --> H["Typed raw history and AVL timeline"]
+```
 
-**Learned behaviour:** with moisture below 20%, select that moisture sensor to record an explicit search context, then select its pump and turn it ON within two minutes. Turn the pump OFF without selecting the moisture sensor again. Repeat this sequence three times. On the next low-moisture context with the pump OFF, an insight reports that the command followed **3 of 3** eligible searches. It uses a dictionary of `(source sensor, target actuator, desired state)` frequencies. At least three examples and 60% observed confidence are required. One eligible search can train one command. Undo and bulk shutdown do not train this association. This is a frequency association, not a causal or machine-learning claim.
+Environmental values remain `float`, power values `int`, and actuator values `bool` in `TelemetryPacket<T>`. The HTTP receiver validates types, categories, physical ranges and timestamps. A `202` response confirms queue admission; its receipt must reach `Processed` to confirm storage. A rejected or expired receipt is reported by the receipt endpoint.
 
-**Before a threshold is crossed:** five or six declining environmental API samples spanning at least four seconds are fitted using least-squares linear regression. If the current reading is still at least 20% but the 60-second projection falls below 20%, the UI highlights the device before a user searches for it. Try sending custom readings **60, 52, 44, 36, 28**, waiting at least one second between sends. Stop the live simulator first. The insight labels the forecast as conditional on the trend continuing.
+Moisture below 10% or above 90%, or power at least 7,500 W, enters the critical lane. Normal traffic is FIFO. The hosted worker checks critical work first every 100 ms and processes up to 100 items per tick. Critical work bypasses waiting normal items and a paused normal queue, but does not interrupt an item already being stored. Timestamp order is independent of processing order.
 
-A disconnected pump is not suggested for switching. Disconnect notices advise checking power/connectivity. High wattage and out-of-range moisture also produce inspection guidance.
+To demonstrate priority, stop the simulator, pause normal processing, queue a normal batch and send a critical reading. Inspect the processing feed, then resume normal processing. Environmental operating warnings below 20% or above 80% are distinct from the critical scheduling thresholds.
 
-## History and data structures
+Actuator ON/OFF commands store previous states in a stack. Undo restores the last command; grouped shutdown can be reversed as one command. Suggested actions use explicit sensor/pump links, search-to-command frequency counts and a conditional least-squares moisture trend. Suggestions require a user's decision and are not automatically executed.
 
-| Structure | File | Purpose and complexity |
-|---|---|---|
-| `Queue<QueuedWork>` | `TelemetryInbox.cs` | FIFO telemetry; enqueue/dequeue amortized O(1) |
-| `PriorityQueue<QueuedWork, (int, long)>` | `TelemetryInbox.cs` | Critical work first; O(log n) enqueue/dequeue; sequence breaks equal-priority ties |
-| `Stack<CommandEntry>` | `CommandHistory.cs` | Latest manual command undone first; O(1) push/pop apart from applying grouped changes |
-| `Dictionary<Guid, DeviceReading>` | `LiveRegistry.cs` | Unique node lookup expected O(1) |
-| `SortedDictionary<DateTimeOffset, StreamLog>` | `StreamHistory.cs` | Per-device chronological timeline; O(log n) insertion; range enumeration O(n) |
-| `HashSet<AlertKey>` / `HashSet<Guid>` | `ActiveAlerts.cs` | Unique error/disconnect tracking, expected O(1) add/remove/contains |
-| Association dictionary + bounded search queue | `ActionPatterns.cs` | Search-to-command frequency counts and two-minute context |
-| `TelemetryPacket<T>[][]` + `List<T>` | `BatchIngestion.cs`, `Domain.cs`, `Gateway.cs` | Jagged HTTP batches and typed retained raw samples |
+## Main data structures
 
-Raw typed histories remain lists. Binary position lookup inserts priority-reordered packets in time order; insertion/removal can be O(n), and each list is bounded. Timeline charts use the sorted dictionary. The timeline is for new API traffic, while Part 1 raw history also contains preload seeds and manual command states. These views intentionally have different scopes.
+| Structure | Role |
+|---|---|
+| Custom AVL tree | Balanced per-sensor timestamp insertion, inclusive range retrieval and oldest-record removal |
+| Weighted adjacency-list graph | Bidirectional simulated connections between sensor identifiers and the gateway |
+| Queue, visited set and predecessor dictionary | BFS reachability and fewest-hop paths |
+| `PriorityQueue<MeshLink, int>` | Min-heap used by Prim to select the gateway component's minimum-cost tree |
+| FIFO and critical priority queues | Telemetry admission and scheduling |
+| Stack | Manual command undo |
+| Dictionaries and hash sets | Device lookup, duplicate timestamps, unique alerts and learned associations |
+| Generic packets, jagged batches and bounded lists | Strongly typed payloads, variable batch sizes and original raw histories |
 
-## Capacity, errors and persistence
+BFS minimises hop count. Prim minimises total tree connection cost; it does not guarantee each sensor's individually cheapest path. A disconnected graph has no single spanning tree covering every node: the API returns the gateway's reachable tree and lists unreachable online nodes separately from offline nodes.
 
-- Queue capacity: **10,000 normal packets plus 1,000 critical packets**. Each lane has its own bound, so a full normal queue cannot consume the critical reserve. A full lane rejects its new work with HTTP 429. Critical work has strict priority; sustained critical traffic can delay normal traffic.
-- Receipts: up to 2,000 completed receipts, plus pending receipts. Processed-history feed: latest 300 entries, up to 100 returned per request.
-- Timeline: up to 2,048 entries per device, oldest removed. Part 1 typed lists trim the oldest block of 256 after exceeding 2,048.
-- Undo: up to 200 commands; further commands are rejected until space is made by undo. Audit: latest 100 command events.
-- Search contexts: latest 200; pattern keys: at most 2,000. Active errors are unique current states; transition feed keeps 200 entries.
-- Registrations and attachments persist under the configured `DataDirectory`. The default is the build output's `data` folder. Set `$env:DataDirectory = "C:\SmartXData"` before starting to use a fixed directory.
-- Telemetry, queues, overrides, undo, pump links and learned patterns are **in memory** and reset on restart. Startup reseeds history. State survives navigation while the same server remains running.
-- Duplicate queued/stored timestamps are rejected. Types, categories, physical ranges and timestamp age are validated. Priority reordering is allowed; the newest sensor timestamp remains the latest displayed value.
-- Collections are protected by locks. This is a single-gateway local simulation without device login, durable queues or real physical command acknowledgement. Do not treat its estimated trends as hardware fault diagnoses.
+Detailed explanations and source examples are in [Data structures](docs/DATA_STRUCTURES.md).
 
-## Run checks
+## Bounds and persistence
 
-From the repository root:
+- A fresh profile directory creates 1,000 sensors with 120 preload samples each. Registration is limited to 5,000 sensors.
+- Queue capacity is 10,000 normal packets plus a separate reserve of 1,000 critical packets. A full lane returns HTTP 429. Sustained critical traffic can delay normal work.
+- Each AVL timeline retains up to 2,048 entries, deleting the oldest timestamp when necessary. Original typed lists trim their oldest block after exceeding their bound.
+- History API pages contain 1–500 records. Their timestamps remain ascending in the response for compatibility with the command-stream chart; the topology table reverses each page for display.
+- Profiles and attachment metadata/bytes persist in `DataDirectory`. The default is the build output's `data` directory. For a fixed location, set `$env:DataDirectory = "C:\SmartXData"` before starting.
+- Telemetry, queues, undo, simulated mesh failures, pump links and learned patterns are in memory and reset when the server restarts. Startup preload history is regenerated.
+- Locks protect the single-process collections. Multi-instance coordination, authenticated devices, durable telemetry and real hardware acknowledgement are outside this local prototype.
+
+## Verification
+
+Run from the repository root, continuing only after each command succeeds:
 
 ```powershell
 dotnet build SmartX.sln -c Release -m:1
@@ -122,32 +132,38 @@ dotnet run --project tests/SmartX.Checks -c Release --no-build
 python scripts/http_checks.py
 ```
 
-C# checks cover the original typed/recursive/operator features and Part 2 FIFO, priority bypass, same-device reordering, duplicate handling, stack undo, grouped restoration, recommendations and the 10,000-packet capacity. Its load timing excludes HTTP. HTTP checks start an isolated server on port 5089, exercise the actual receiver routes, and clean their temporary data. They also test the HTTP simulator, stream events, typed JSON failures and attachments.
+C# checks cover the original features, queue/command behaviour, AVL balance/ranges/retention, BFS routing, MST costs/failures and paged history. HTTP checks start an isolated app on port 5089 with temporary profile data and remove it afterwards. They test actual receiver routes, mesh failure/recovery, health timeout, MAC lookup and paged/inclusive history queries alongside the Part 1 and Part 2 workflows.
 
-For optional headless browser checks, install Node.js and Playwright in a separate tools folder and set `SMARTX_PLAYWRIGHT_MODULE` to the absolute Playwright package directory. `scripts/browser_checks.cjs` documents the command. These are development checks; running the app itself needs no Node dependencies.
+GitHub Actions builds the solution, runs the C# checks, checks all six client JavaScript files for syntax and runs the HTTP suite. A green run was confirmed for source commit `00f4b9e` on 12 November 2026. This is the latest recorded verification baseline, rather than a claim about a future commit. See [Verification record](docs/VERIFICATION.md).
+
+The optional `scripts/browser_checks.cjs` requires a separately installed Playwright/Chromium environment and covers the earlier Part 1/Part 2 interactions. It has not been extended to verify the Part 3 dashboard. The final topology browser checklist is recorded separately in `docs/VERIFICATION.md`.
 
 ## Docker
+
+With Docker and Compose available:
 
 ```powershell
 docker compose up --build
 ```
 
-Open http://localhost:5080. The .NET 10 multi-stage Dockerfile runs as the `app` user. Compose maps host 5080 to container 8080 and preserves profiles/attachments in `smartx-data`. Stop with `docker compose down`. The HTTP simulator discovers the container listening address and uses loopback inside the container. Docker execution must be verified on a machine with Docker; it was not run in this environment.
+Open [http://localhost:5080](http://localhost:5080). Compose maps localhost port 5080 to container port 8080 and mounts the `smartx-data` volume at `/app/data`. The .NET 10 multi-stage image runs as the `app` user. The HTTP simulator discovers the listening address and uses loopback inside the container.
 
-## Files
+Stop with `docker compose down`; the named volume retains profiles and attachments. Telemetry and other in-memory state reset when the container restarts. Container execution remains a separate verification item; the confirmed CI workflow does not build or run Docker.
 
-- `src/SmartX.Api/Program.cs`: dependency injection and API routes.
-- `src/SmartX.Api/TelemetryInbox.cs`, `TelemetryWorker.cs`: queue admission and processing.
-- `src/SmartX.Api/DeviceSimulator.cs`: device-style HTTP requests.
-- `src/SmartX.Api/CommandHistory.cs`: overrides and stack undo.
-- `src/SmartX.Api/LiveRegistry.cs`, `StreamHistory.cs`, `ActiveAlerts.cs`: live state, sorted logs and unique alerts.
-- `src/SmartX.Api/ActionPatterns.cs`, `SuggestedActions.cs`, `TrendAnalysis.cs`: recommendation logic.
-- `src/SmartX.Api/wwwroot/`: existing Part 1 client, navigation and Part 2 JavaScript modules.
-- `tests/SmartX.Checks/`, `scripts/`: verification.
-- `docs/API.md`: endpoint examples. `docs/PART2_DEMO.md`: short demonstration sequence.
+## Project map and documentation
 
-## Reference documentation
+| Location | Contents |
+|---|---|
+| `src/SmartX.Api/Program.cs` | Dependency injection, receiver and dashboard API routes |
+| `Gateway.cs`, `Domain.cs`, `GatewayRealtime.cs` | Profiles, typed raw storage and shared gateway operations |
+| `TelemetryInbox.cs`, `TelemetryWorker.cs`, `DeviceSimulator.cs` | Admission queues, hosted processing and actual HTTP simulation |
+| `StreamHistory.cs`, `DataStructures/AvlTree.cs` | Indexed chronological history and paging |
+| `DataStructures/MeshGraph.cs`, `MeshSpanningTree.cs` | Graph, BFS and Prim implementations |
+| `NetworkTopology.cs` | Sensor/health integration, generated connectivity and route/failure API service |
+| `src/SmartX.Api/wwwroot/` | Three application views and JavaScript/CSS modules |
+| `tests/SmartX.Checks/`, `scripts/` | C# and HTTP checks; optional earlier browser checks |
 
-- Microsoft: [Queue](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.queue-1), [PriorityQueue](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.priorityqueue-2), [Stack](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.stack-1).
-- Microsoft: [Dictionary](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.dictionary-2), [SortedDictionary](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.sorteddictionary-2), [HashSet](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.hashset-1).
-- Microsoft: [ASP.NET Core hosted services](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-10.0).
+- [API reference](docs/API.md)
+- [Data structure implementation notes](docs/DATA_STRUCTURES.md)
+- [Verification record and final manual checks](docs/VERIFICATION.md)
+- [GitHub repository](https://github.com/ST10435330/ST10435330_POE_Part3_PROG7312)
