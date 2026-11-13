@@ -1,8 +1,32 @@
 # Smart-X — PROG7312 POE Part 3
 
+**Developed by Antonio Bechev (ST10435330)**
+
+**Module:** PROG7312
+
 Smart-X is a simulated IoT gateway for hydroponic moisture sensors, utility meters and irrigation actuators. The completed application combines typed telemetry ingestion, a real-time command stream and a network topology dashboard. It uses C#/.NET 10, an ASP.NET Core Minimal API and an HTML/CSS/JavaScript client served by the same application.
 
 Part 3 adds an AVL timestamp index, a weighted mesh graph, BFS traversal, Prim's Minimum Spanning Tree (MST), route highlighting, failure simulation and filtered telemetry history.
+
+## Video demonstration
+
+[Watch the Smart-X Part 3 demonstration on YouTube](https://youtu.be/h3mjGzaj2D4).
+
+## Submission documentation
+
+The necessary Part 3 documentation is available in the [`/docs`](docs/) folder:
+
+| Document | Contents |
+|---|---|
+| [Part 3 report — PDF](docs/SmartX_Part3_Report.pdf) | Submission copy of the implementation and project completion report, including integration challenges, learning outcomes, technology recommendations and references |
+| [Part 3 report — Word](docs/SmartX_Part3_Report.docx) | Editable version of the same report |
+| [Part 3 AI declaration](docs/SmartX_Part3_AI_Declaration.docx) | AI assistance with algorithms, code, debugging, telemetry history, date filtering and documentation, with example prompts |
+| [Feedback and development updates](docs/SmartX_Part3_Feedback_Updates.md) | Feedback record and improvements made for Part 3; no specific corrective lecturer feedback was received for Parts 1 and 2 |
+| [API reference](docs/API.md) | Endpoints, request parameters and response behaviour across Parts 1–3 |
+| [Data structure explanations](docs/DATA_STRUCTURES.md) | AVL history, weighted mesh graph, BFS, heaps and Prim's algorithm, with source examples and efficiency explanations |
+| [Verification record](docs/VERIFICATION.md) | Recorded automated results, commands to reproduce checks and the final browser/container checklist |
+
+Earlier supporting documents are also retained: [Part 1 research report](docs/SmartX_Research_Report.docx) and [earlier AI declaration](docs/AI%20Declaration.docx). Use the Part 3 report and declaration above for the final submission.
 
 ## Requirements
 
@@ -163,7 +187,6 @@ Stop with `docker compose down`; the named volume retains profiles and attachmen
 | `src/SmartX.Api/wwwroot/` | Three application views and JavaScript/CSS modules |
 | `tests/SmartX.Checks/`, `scripts/` | C# and HTTP checks; optional earlier browser checks |
 
-- [API reference](docs/API.md)
-- [Data structure implementation notes](docs/DATA_STRUCTURES.md)
-- [Verification record and final manual checks](docs/VERIFICATION.md)
+See [Submission documentation](#submission-documentation) above for the report, declaration, feedback record and technical notes.
+
 - [GitHub repository](https://github.com/ST10435330/ST10435330_POE_Part3_PROG7312)
